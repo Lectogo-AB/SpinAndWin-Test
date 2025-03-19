@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -109,7 +109,7 @@
 
     let selectedSegmentText = '';
 
-    // Get or create User ID
+    // Function to get User ID (either from URL or localStorage)
     function getUserId() {
       const params = new URLSearchParams(window.location.search);
       let userId = params.get('user_id');
@@ -124,10 +124,10 @@
       return userId;
     }
 
-    // Check if user has spun today
+    // Function to check if the user can spin today (i.e., they haven't spun yet)
     function canSpin() {
       const lastSpinDate = localStorage.getItem('lastSpinDate');
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       return lastSpinDate !== today;
     }
 
@@ -140,20 +140,39 @@
       }
     }
 
-    // Run spin logic
-    function spin() {
+    // Check if user has already spun today
+    function checkUserStreak() {
       const userId = getUserId();
       const today = new Date().toISOString().split('T')[0];
 
-      // Check if user can spin today
-      if (!canSpin()) {
-        updateMessage();
-        return;
-      }
+      fetch(`https://script.google.com/macros/s/AKfycbxy_pGlnrY2WbvXfldX1krlfRCxaSIaf70YsBi3p9rdmcXtDOv4ZX1reLS2oH_OYRXeTA/exec?userId=${userId}&day=${today}`)
+        .then(response => response.json())
+        .then(data => {
+          console.log('User data loaded:', data);
+        })
+        .catch(error => console.error('Error:', error));
+    }
 
-      localStorage.setItem('lastSpinDate', today);  // Set last spin date
+    // Run this function when the page loads
+    window.onload = function() {
+      checkUserStreak();  // Check the streak for the user
+    }
 
-      let rand = Math.random();
+    // Function to update the user's streak when they spin the wheel
+    function updateStreak(userId, selectedSegmentText, today) {
+      fetch(`https://script.google.com/macros/s/AKfycbxy_pGlnrY2WbvXfldX1krlfRCxaSIaf70YsBi3p9rdmcXtDOv4ZX1reLS2oH_OYRXeTA/exec?userId=${userId}&result=${selectedSegmentText}&day=${today}`)
+        .then(response => response.json())
+        .then(data => {
+          console.log('Streak updated:', data);
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Function to run when the user clicks "Spin"
+    function spin() {
+      const userId = getUserId();
+      const today = new Date().toISOString().split('T')[0]; // Get today's date
+      const rand = Math.random();
       let cumulativeProbability = 0;
       let segmentIndex = 0;
 
@@ -167,13 +186,8 @@
 
       selectedSegmentText = segments[segmentIndex].text;
 
-      // Log result to Google Sheets
-      fetch(`https://script.google.com/macros/s/AKfycbxy_pGlnrY2WbvXfldX1krlfRCxaSIaf70YsBi3p9rdmcXtDOv4ZX1reLS2oH_OYRXeTA/exec?userId=${userId}&result=${selectedSegmentText}&day=${today}`)
-        .then(response => response.json())
-        .then(data => {
-          console.log('Spin logged:', data);
-        })
-        .catch(error => console.error('Error:', error));
+      // Update the streak
+      updateStreak(userId, selectedSegmentText, today);
 
       // Start spin animation
       const stopAt = theWheel.getRandomForSegment(segmentIndex);
