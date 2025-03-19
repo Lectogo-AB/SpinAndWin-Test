@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -66,23 +66,9 @@
       margin: 10px auto;
       filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.1));
     }
-    .back-arrow {
-      position: absolute;
-      top: 20px;
-      left: 10px;
-      font-size: 20px;
-      color: transparent;
-      background: #3b82f6;
-      padding: 8px 12px;
-      border-radius: 75%;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      cursor: pointer;
-      z-index: 100;
-    }
   </style>
 </head>
 <body>
-  <div class="back-arrow" onclick="goBack()">&lt;</div>
   <h1>🎉 Spin & Win</h1>
   <div class="pointer"></div>
   <div class="canvas-container">
@@ -122,9 +108,8 @@
     });
 
     let selectedSegmentText = '';
-    let preloadedCode = '';
 
-    // Function to retrieve or create User ID
+    // Get or create User ID
     function getUserId() {
       const params = new URLSearchParams(window.location.search);
       let userId = params.get('user_id');
@@ -139,13 +124,14 @@
       return userId;
     }
 
-    // Check if user has already spun today
+    // Check if user has spun today
     function canSpin() {
       const lastSpinDate = localStorage.getItem('lastSpinDate');
       const today = new Date().toISOString().split('T')[0];
-      return lastSpinDate !== today;  // Return true if the user hasn't spun today
+      return lastSpinDate !== today;
     }
 
+    // Update message if user has already spun today
     function updateMessage() {
       const lastSpinDate = localStorage.getItem('lastSpinDate');
       const today = new Date().toISOString().split('T')[0];
@@ -154,23 +140,18 @@
       }
     }
 
-    // Prevent the user from spinning more than once today
-    if (!canSpin()) {
-      updateMessage();
-    }
-
-    // Spin the wheel
+    // Run spin logic
     function spin() {
       const userId = getUserId();
       const today = new Date().toISOString().split('T')[0];
 
-      // If user has already spun today, show a message and prevent spinning
+      // Check if user can spin today
       if (!canSpin()) {
         updateMessage();
         return;
       }
 
-      localStorage.setItem('lastSpinDate', today); // Set last spin date
+      localStorage.setItem('lastSpinDate', today);  // Set last spin date
 
       let rand = Math.random();
       let cumulativeProbability = 0;
@@ -186,17 +167,15 @@
 
       selectedSegmentText = segments[segmentIndex].text;
 
-      // Log the result to Google Sheets
-      fetch(`https://script.google.com/macros/s/AKfycbzmrulgxbuxKcs6GRzAAiUwq5-qjpKbfkB6ZoI65BrMhY_sqG9ElyL7eW1SKvYLpI1oig/exec?userId=${userId}&result=${selectedSegmentText}&day=${today}`)
+      // Log result to Google Sheets
+      fetch(`https://script.google.com/macros/s/AKfycbxy_pGlnrY2WbvXfldX1krlfRCxaSIaf70YsBi3p9rdmcXtDOv4ZX1reLS2oH_OYRXeTA/exec?userId=${userId}&result=${selectedSegmentText}&day=${today}`)
         .then(response => response.json())
         .then(data => {
-          preloadedCode = data.code;
+          console.log('Spin logged:', data);
         })
-        .catch(error => {
-          console.log('Error fetching code.');
-        });
+        .catch(error => console.error('Error:', error));
 
-      // Start the wheel spin animation
+      // Start spin animation
       const stopAt = theWheel.getRandomForSegment(segmentIndex);
       theWheel.stopAnimation(false);
       theWheel.rotationAngle = 0;
@@ -204,28 +183,14 @@
       theWheel.startAnimation();
     }
 
+    // Handle the result after spinning
     function handleResult(indicatedSegment) {
       const resultDiv = document.getElementById('result');
       if (indicatedSegment.text === '0 kr') {
         resultDiv.innerHTML = `😔 Sorry, no win this time - try again tomorrow!`;
       } else {
-        resultDiv.innerHTML = `🎉 You won: ${indicatedSegment.text}!<br/> Your code: <strong id="promoCode">${preloadedCode}</strong><br/><button class="copy-btn" onclick="copyCode()">📋 Copy Code</button><div id="copyMessage"></div><br/>Activate your code in the app – valid for 1 hour!`;
+        resultDiv.innerHTML = `🎉 You won: ${indicatedSegment.text}!`;
       }
-    }
-
-    function copyCode() {
-      const code = document.getElementById('promoCode').innerText;
-      navigator.clipboard.writeText(code).then(() => {
-        const msg = document.getElementById('copyMessage');
-        msg.innerText = '✔️ Code copied!';
-        setTimeout(() => {
-          msg.innerText = '';
-        }, 2000);
-      });
-    }
-
-    function goBack() {
-      window.history.back();
     }
   </script>
 </body>
