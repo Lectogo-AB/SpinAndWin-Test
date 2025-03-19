@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Spin & Win | LecToGo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/zarocknz/javascript-winwheel@master/Winwheel.min.js"></script>
+  <style>
+    html, body {
+      text-align: center;
+      font-family: 'Poppins', Arial, sans-serif;
+      background-color: #f4f7fa;
+      margin: 0;
+      padding-top: 20px;
+      overflow: hidden;
+      height: 100%;
+      position: relative;
+    }
+    h1 {
+      color: #333;
+      margin-top: 20px;
+      font-size: 1.5rem;
+    }
+    .canvas-container {
+      width: 90%;
+      max-width: 350px;
+      margin: 10px auto;
+    }
+    #canvas {
+      width: 100%;
+      height: auto;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+    }
+    .spin-btn {
+      background-color: #3b82f6;
+      color: white;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 50px;
+      font-size: 16px;
+      margin-top: 15px;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+      transition: transform 0.1s;
+    }
+    .spin-btn:hover {
+      background-color: #2563eb;
+    }
+    .spin-btn:active {
+      transform: scale(0.95);
+    }
+    .result {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #000;
+    }
+    .pointer {
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 20px solid #333;
+      margin: 10px auto;
+      filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.1));
+    }
+    .back-arrow {
+      position: absolute;
+      top: 20px;
+      left: 10px;
+      font-size: 20px;
+      color: transparent;
+      background: #3b82f6;
+      padding: 8px 12px;
+      border-radius: 75%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      cursor: pointer;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <div class="back-arrow" onclick="goBack()">&lt;</div>
+  <h1>🎉 Spin & Win</h1>
+  <div class="pointer"></div>
+  <div class="canvas-container">
+    <canvas id="canvas" width="350" height="350"></canvas>
+  </div>
+  <button class="spin-btn" onclick="spin()">🎯 Spin the Wheel</button>
+  <div class="result" id="result"></div>
+
+  <script>
+    const segments = [
+      {'fillStyle': '#42a5f5', 'text': '5 kr'},
+      {'fillStyle': '#4caf50', 'text': '100 kr'},
+      {'fillStyle': '#1e88e5', 'text': '10 kr'},
+      {'fillStyle': '#FF404A', 'text': '0 kr'},
+      {'fillStyle': '#42a5f5', 'text': '5 kr'},
+      {'fillStyle': '#008F4C', 'text': '20 kr'}
+    ];
+
+    const probabilities = [0.22, 0.02, 0.28, 0.20, 0.23, 0.05];
+
+    const theWheel = new Winwheel({
+      'canvasId': 'canvas',
+      'numSegments': segments.length,
+      'outerRadius': 170,
+      'segments': segments,
+      'textFontFamily': 'Poppins',
+      'textFontSize': 30,
+      'textFillStyle': '#FFF',
+      'textFontWeight': 'bold',
+      'animation': {
+        'type': 'spinToStop',
+        'duration': 5,
+        'spins': 5,
+        'direction': 'clockwise',
+        'callbackFinished': handleResult
+      }
+    });
+
+    let selectedSegmentText = '';
+    let preloadedCode = '';
+
+    // Function to retrieve or create User ID
+    function getUserId() {
+      const params = new URLSearchParams(window.location.search);
+      let userId = params.get('user_id');
+      if (!userId) {
+        if (!localStorage.getItem('userId')) {
+          userId = 'user-' + Date.now();
+          localStorage.setItem('userId', userId);
+        } else {
+          userId = localStorage.getItem('userId');
+        }
+      }
+      return userId;
+    }
+
+    // Check if user has already spun today
+    function canSpin() {
+      const lastSpinDate = localStorage.getItem('lastSpinDate');
+      const today = new Date().toISOString().split('T')[0];
+      return lastSpinDate !== today;  // Return true if the user hasn't spun today
+    }
+
+    function updateMessage() {
+      const lastSpinDate = localStorage.getItem('lastSpinDate');
+      const today = new Date().toISOString().split('T')[0];
+      if (lastSpinDate === today) {
+        document.getElementById('result').innerHTML = `⏰ You have already spun today! Come back tomorrow after 00:00.`;
+      }
+    }
+
+    // Prevent the user from spinning more than once today
+    if (!canSpin()) {
+      updateMessage();
+    }
+
+    // Spin the wheel
+    function spin() {
+      const userId = getUserId();
+      const today = new Date().toISOString().split('T')[0];
+
+      // If user has already spun today, show a message and prevent spinning
+      if (!canSpin()) {
+        updateMessage();
+        return;
+      }
+
+      localStorage.setItem('lastSpinDate', today); // Set last spin date
+
+      let rand = Math.random();
+      let cumulativeProbability = 0;
+      let segmentIndex = 0;
+
+      for (let i = 0; i < probabilities.length; i++) {
+        cumulativeProbability += probabilities[i];
+        if (rand < cumulativeProbability) {
+          segmentIndex = i;
+          break;
+        }
+      }
+
+      selectedSegmentText = segments[segmentIndex].text;
+
+      // Log the result to Google Sheets
+      fetch(`https://script.google.com/macros/s/AKfycbzmrulgxbuxKcs6GRzAAiUwq5-qjpKbfkB6ZoI65BrMhY_sqG9ElyL7eW1SKvYLpI1oig/exec?userId=${userId}&result=${selectedSegmentText}&day=${today}`)
+        .then(response => response.json())
+        .then(data => {
+          preloadedCode = data.code;
+        })
+        .catch(error => {
+          console.log('Error fetching code.');
+        });
+
+      // Start the wheel spin animation
+      const stopAt = theWheel.getRandomForSegment(segmentIndex);
+      theWheel.stopAnimation(false);
+      theWheel.rotationAngle = 0;
+      theWheel.animation.stopAngle = stopAt;
+      theWheel.startAnimation();
+    }
+
+    function handleResult(indicatedSegment) {
+      const resultDiv = document.getElementById('result');
+      if (indicatedSegment.text === '0 kr') {
+        resultDiv.innerHTML = `😔 Sorry, no win this time - try again tomorrow!`;
+      } else {
+        resultDiv.innerHTML = `🎉 You won: ${indicatedSegment.text}!<br/> Your code: <strong id="promoCode">${preloadedCode}</strong><br/><button class="copy-btn" onclick="copyCode()">📋 Copy Code</button><div id="copyMessage"></div><br/>Activate your code in the app – valid for 1 hour!`;
+      }
+    }
+
+    function copyCode() {
+      const code = document.getElementById('promoCode').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const msg = document.getElementById('copyMessage');
+        msg.innerText = '✔️ Code copied!';
+        setTimeout(() => {
+          msg.innerText = '';
+        }, 2000);
+      });
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+  </script>
+</body>
+</html>
