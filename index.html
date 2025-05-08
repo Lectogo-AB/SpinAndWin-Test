@@ -98,7 +98,8 @@
   <div class="result" id="result"></div>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
+    const streakMacroUrl = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
+    const codeMacroUrl = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
 
     const segments = [
       {'fillStyle': '#42a5f5', 'text': '5 kr'},
@@ -156,7 +157,7 @@
     }
 
     function displayStreakBar(userId) {
-      fetch(`${scriptURL}?get_dates=true&user_id=${userId}`)
+      fetch(`${streakMacroUrl}?get_dates=true&user_id=${userId}`)
         .then(res => res.json())
         .then(data => {
           const streak = calculateStreak(data.dates || []);
@@ -210,7 +211,7 @@
           case '100 kr': category = 4; break;
         }
 
-        fetch(`${scriptURL}?value_category=${category}&user_id=${userId}`)
+        fetch(`${codeMacroUrl}?value_category=${category}&user_id=${userId}`)
           .then(res => res.json())
           .then(data => {
             preloadedCode = data.code || "KOD EJ FUNNEN";
