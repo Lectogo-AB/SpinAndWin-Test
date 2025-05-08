@@ -91,7 +91,7 @@
       { fillStyle: '#42a5f5', text: '5 kr' },
       { fillStyle: '#008F4C', text: '20 kr' }
     ];
-    const probabilities = [0.01, 0.01, 0.01, 0.01, 1, 0.01];
+    const probabilities = [0.22, 0.02, 0.28, 0.20, 0.23, 0.05];
 
     const theWheel = new Winwheel({
       canvasId: 'canvas',
@@ -162,7 +162,7 @@
     }
 
     function displayStreakBar(userId) {
-      fetch(`${streakScriptUrl}?get_dates=true&user_id=${userId}`)
+      fetch(${streakScriptUrl}?get_dates=true&user_id=${userId})
         .then(res => res.json())
         .then(data => {
           const streak = calculateStreak(data.dates || []);
@@ -171,19 +171,19 @@
 
           for (let i = 1; i <= maxStreak; i++) {
             if (i <= streak) {
-              barHTML += `<div style="width: 20px; height: 20px; background: #f97316; border-radius: 4px;"></div>`;
+              barHTML += <div style="width: 20px; height: 20px; background: #f97316; border-radius: 4px;"></div>;
             } else if (i === maxStreak) {
-              barHTML += `<div style="width: 40px; height: 20px; background: #facc15; font-size: 10px; font-weight: bold; border-radius: 4px; display: flex; align-items: center; justify-content: center;">🎯</div>`;
+              barHTML += <div style="width: 40px; height: 20px; background: #facc15; font-size: 10px; font-weight: bold; border-radius: 4px; display: flex; align-items: center; justify-content: center;">🎯</div>;
             } else {
-              barHTML += `<div style="width: 20px; height: 20px; background: #e5e7eb; border-radius: 4px;"></div>`;
+              barHTML += <div style="width: 20px; height: 20px; background: #e5e7eb; border-radius: 4px;"></div>;
             }
           }
           barHTML += '</div>';
-          const belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
+          const belowText = <div style="margin-top: 6px; font-size: 14px; color: #444;">
             ${streak < 7
-              ? `Snurra ${7 - streak} dagar till för att låsa upp bonusspel med Sparky!`
-              : `🎉 Du har låst upp bonusutmaningen – startar nu!`}
-          </div>`;
+              ? Snurra ${7 - streak} dagar till för att låsa upp bonusspel med Sparky!
+              : 🎉 Du har låst upp bonusutmaningen – startar nu!}
+          </div>;
           document.getElementById('streakBar').innerHTML = barHTML + belowText;
         })
         .catch(() => {
@@ -222,7 +222,7 @@
           case '100 kr': category = 4; break;
         }
 
-        fetch(`https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec?value_category=${category}&user_id=${userId}`)
+        fetch(https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec?value_category=${category}&user_id=${userId})
           .then(r => r.json())
           .then(data => preloadedCode = data.code || 'KOD')
           .catch(() => preloadedCode = 'ERROR');
@@ -238,15 +238,15 @@
     function handleResult(segment) {
       const resultDiv = document.getElementById('result');
       if (segment.text === '0 kr') {
-        resultDiv.innerHTML = `😔 Tyvärr blev det ingen vinst den här gången - prova igen imorgon!`;
+        resultDiv.innerHTML = 😔 Tyvärr blev det ingen vinst den här gången - prova igen imorgon!;
       } else {
-        resultDiv.innerHTML = `
+        resultDiv.innerHTML = 
           🎉 Du vann: ${segment.text}!<br/>
           Din kod: <strong id="promoCode">${preloadedCode}</strong><br/>
           <button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button>
           <div id="copyMessage"></div><br/>
           Aktivera koden i appen nu – gäller endast i 1 timme!
-        `;
+        ;
       }
 
       // 🔁 Uppdatera streak direkt efter snurr
