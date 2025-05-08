@@ -14,9 +14,11 @@
       background-color: #f4f7fa;
       margin: 0;
       padding-top: 20px;
+      overflow-x: hidden;
     }
     h1 {
       color: #333;
+      margin-top: 20px;
       font-size: 1.5rem;
     }
     #streakBar {
@@ -29,14 +31,9 @@
     }
     #canvas {
       width: 100%;
-    }
-    .pointer {
-      width: 0;
-      height: 0;
-      border-left: 12px solid transparent;
-      border-right: 12px solid transparent;
-      border-top: 20px solid #333;
-      margin: 10px auto;
+      height: auto;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
     }
     .spin-btn {
       background-color: #3b82f6;
@@ -48,10 +45,27 @@
       margin-top: 15px;
       cursor: pointer;
       box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+      transition: transform 0.1s;
+    }
+    .spin-btn:hover {
+      background-color: #2563eb;
+    }
+    .spin-btn:active {
+      transform: scale(0.95);
     }
     .result {
       margin-top: 10px;
       font-size: 16px;
+      color: #000;
+    }
+    .pointer {
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 20px solid #333;
+      margin: 10px auto;
+      filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.1));
     }
     .copy-btn {
       margin-top: 10px;
@@ -63,6 +77,9 @@
       font-size: 14px;
       cursor: pointer;
     }
+    .copy-btn:active {
+      transform: scale(0.95);
+    }
     #copyMessage {
       margin-top: 8px;
       color: green;
@@ -72,7 +89,7 @@
 </head>
 <body>
   <h1>🎉 Snurra & vinn laddkrediter varje dag!</h1>
-  <div id="streakBar"></div>
+  <div id="streakBar">🔄 Laddar streak...</div>
   <div class="pointer"></div>
   <div class="canvas-container">
     <canvas id="canvas" width="350" height="350"></canvas>
@@ -81,7 +98,7 @@
   <div class="result" id="result"></div>
 
   <script>
-    const streakScriptUrl = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
 
     const segments = [
       {'fillStyle': '#42a5f5', 'text': '5 kr'},
@@ -94,18 +111,19 @@
     const probabilities = [0.22, 0.02, 0.28, 0.20, 0.23, 0.05];
 
     const theWheel = new Winwheel({
-      canvasId: 'canvas',
-      numSegments: segments.length,
-      outerRadius: 170,
-      segments: segments,
-      textFontFamily: 'Poppins',
-      textFontSize: 28,
-      textFillStyle: '#FFF',
-      animation: {
-        type: 'spinToStop',
-        duration: 5,
-        spins: 5,
-        callbackFinished: handleResult
+      'canvasId': 'canvas',
+      'numSegments': segments.length,
+      'outerRadius': 170,
+      'segments': segments,
+      'textFontFamily': 'Poppins',
+      'textFontSize': 30,
+      'textFillStyle': '#FFF',
+      'textFontWeight': 'bold',
+      'animation': {
+        'type': 'spinToStop',
+        'duration': 5,
+        'spins': 5,
+        'callbackFinished': handleResult
       }
     });
 
@@ -126,34 +144,19 @@
       return id;
     }
 
-    function canSpin() {
-      const lastSpinDate = localStorage.getItem('lastSpinDate');
-      const today = new Date().toISOString().split('T')[0];
-      return lastSpinDate !== today;
-    }
-
-    function saveSpinDate() {
-      const today = new Date().toISOString().split('T')[0];
-      localStorage.setItem('lastSpinDate', today);
-    }
-
     function calculateStreak(dates) {
       const today = new Date().toISOString().split('T')[0];
       let streak = 0;
-
       for (let i = 0; i < 7; i++) {
         const day = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
-        if (dates.includes(day)) {
-          streak++;
-        } else {
-          break;
-        }
+        if (dates.includes(day)) streak++;
+        else break;
       }
       return streak;
     }
 
     function displayStreakBar(userId) {
-      fetch(`${streakScriptUrl}?get_dates=true&user_id=${userId}`)
+      fetch(`${scriptURL}?get_dates=true&user_id=${userId}`)
         .then(res => res.json())
         .then(data => {
           const streak = calculateStreak(data.dates || []);
@@ -169,13 +172,14 @@
               barHTML += `<div style="width: 20px; height: 20px; background: #e5e7eb; border-radius: 4px;"></div>`;
             }
           }
+
           barHTML += '</div>';
-          const belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
+          const text = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
             ${streak < 7 
               ? `Snurra ${7 - streak} dagar till för att låsa upp bonusspel med Sparky!` 
               : `🎉 Du har låst upp bonusutmaningen – startar nu!`}
           </div>`;
-          document.getElementById('streakBar').innerHTML = barHTML + belowText;
+          document.getElementById('streakBar').innerHTML = barHTML + text;
         })
         .catch(() => {
           document.getElementById('streakBar').innerText = '⚠️ Kunde inte hämta streak just nu.';
@@ -183,13 +187,7 @@
     }
 
     function spin() {
-      if (!canSpin()) {
-        document.getElementById('result').innerHTML = '⏰ Du har redan snurrat idag! Kom tillbaka imorgon.';
-        return;
-      }
-
       const userId = getUserId();
-      saveSpinDate();
 
       let rand = Math.random();
       let cumulative = 0;
@@ -201,7 +199,6 @@
           break;
         }
       }
-
       selectedSegmentText = segments[segmentIndex - 1].text;
 
       if (selectedSegmentText !== '0 kr') {
@@ -213,10 +210,11 @@
           case '100 kr': category = 4; break;
         }
 
-        fetch(`https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec?value_category=${category}&user_id=${userId}`)
-          .then(r => r.json())
-          .then(data => preloadedCode = data.code || 'KOD')
-          .catch(() => preloadedCode = 'ERROR');
+        fetch(`${scriptURL}?value_category=${category}&user_id=${userId}`)
+          .then(res => res.json())
+          .then(data => {
+            preloadedCode = data.code || "KOD EJ FUNNEN";
+          });
       }
 
       const stopAt = theWheel.getRandomForSegment(segmentIndex);
@@ -231,15 +229,22 @@
       if (segment.text === '0 kr') {
         resultDiv.innerHTML = `😔 Tyvärr blev det ingen vinst den här gången - prova igen imorgon!`;
       } else {
-        resultDiv.innerHTML = `🎉 Du vann: ${segment.text}!<br/>Din kod: <strong id="promoCode">${preloadedCode}</strong><br/><button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button><div id="copyMessage"></div><br/>Aktivera koden i appen nu – gäller endast i 1 timme!`;
+        resultDiv.innerHTML = `
+          🎉 Du vann: ${segment.text}!<br/>
+          Din kod: <strong id="promoCode">${preloadedCode}</strong><br/>
+          <button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button>
+          <div id="copyMessage"></div><br/>
+          Aktivera koden i appen nu – gäller endast i 1 timme!
+        `;
       }
     }
 
     function copyCode() {
       const code = document.getElementById('promoCode').innerText;
       navigator.clipboard.writeText(code).then(() => {
-        document.getElementById('copyMessage').innerText = '✔️ Koden är kopierad!';
-        setTimeout(() => document.getElementById('copyMessage').innerText = '', 2000);
+        const msg = document.getElementById('copyMessage');
+        msg.innerText = '✔️ Koden är kopierad!';
+        setTimeout(() => { msg.innerText = ''; }, 2000);
       });
     }
 
