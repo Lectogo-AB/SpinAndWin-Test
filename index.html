@@ -98,8 +98,8 @@
   <div class="result" id="result"></div>
 
   <script>
-    const streakScriptURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
-    const codeScriptURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
+    const streakURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
+    const codeURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
 
     const segments = [
       {'fillStyle': '#42a5f5', 'text': '5 kr'},
@@ -145,10 +145,22 @@
       return id;
     }
 
+    function hasSpunToday() {
+      const lastSpin = localStorage.getItem('lastSpinDate');
+      const today = new Date().toISOString().split('T')[0];
+      return lastSpin === today;
+    }
+
+    function markSpinToday() {
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem('lastSpinDate', today);
+    }
+
     function calculateStreak(dates) {
+      const today = new Date();
       let streak = 0;
       for (let i = 1; i <= 7; i++) {
-        const day = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
+        const day = new Date(today.getTime() - i * 86400000).toISOString().split('T')[0];
         if (dates.includes(day)) streak++;
         else break;
       }
@@ -156,7 +168,7 @@
     }
 
     function displayStreakBar(userId) {
-      fetch(`${streakScriptURL}?get_dates=true&user_id=${userId}`)
+      fetch(`${streakURL}?get_dates=true&user_id=${userId}`)
         .then(res => res.json())
         .then(data => {
           const streak = calculateStreak(data.dates || []);
@@ -187,11 +199,18 @@
     }
 
     function spin() {
-      const userId = getUserId();
+      if (hasSpunToday()) {
+        alert("⏰ Du har redan snurrat idag! Kom tillbaka imorgon.");
+        return;
+      }
 
+      markSpinToday();
+
+      const userId = getUserId();
       let rand = Math.random();
       let cumulative = 0;
       let segmentIndex = 0;
+
       for (let i = 0; i < probabilities.length; i++) {
         cumulative += probabilities[i];
         if (rand < cumulative) {
@@ -199,6 +218,7 @@
           break;
         }
       }
+
       selectedSegmentText = segments[segmentIndex - 1].text;
 
       if (selectedSegmentText !== '0 kr') {
@@ -210,7 +230,7 @@
           case '100 kr': category = 4; break;
         }
 
-        fetch(`${codeScriptURL}?value_category=${category}&user_id=${userId}`)
+        fetch(`${codeURL}?value_category=${category}&user_id=${userId}`)
           .then(res => res.json())
           .then(data => {
             preloadedCode = data.code || "KOD EJ FUNNEN";
