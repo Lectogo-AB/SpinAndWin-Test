@@ -84,15 +84,14 @@
     const streakScriptUrl = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
 
     const segments = [
+      { fillStyle: '#42a5f5', text: '5 kr' },
+      { fillStyle: '#4caf50', text: '100 kr' },
+      { fillStyle: '#1e88e5', text: '10 kr' },
       { fillStyle: '#FF404A', text: '0 kr' },
-      { fillStyle: '#FF404A', text: '0 kr' },
-      { fillStyle: '#FF404A', text: '0 kr' },
-      { fillStyle: '#008F4C', text: '20 kr' },
-      { fillStyle: '#008F4C', text: '20 kr' },
-      { fillStyle: '#4caf50', text: '100 kr' }
+      { fillStyle: '#42a5f5', text: '5 kr' },
+      { fillStyle: '#008F4C', text: '20 kr' }
     ];
-
-    const probabilities = [0.4, 0.2, 0.1, 0.15, 0.1, 0.05];
+    const probabilities = [0.22, 0.02, 0.28, 0.20, 0.23, 0.05];
 
     const theWheel = new Winwheel({
       canvasId: 'canvas',
@@ -139,16 +138,26 @@
     }
 
     function calculateStreak(dates) {
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
       const today = new Date().toISOString().split('T')[0];
-      if (!dates.includes(today)) dates.push(today);
+      let baseDate = new Date();
+
+      if (!dates.includes(today)) {
+        baseDate.setDate(baseDate.getDate() - 1);
+      }
 
       let streak = 0;
+
       for (let i = 0; i < 7; i++) {
-        const day = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
-        if (dates.includes(day)) streak++;
-        else break;
+        const checkDate = new Date(baseDate);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+        if (dates.includes(dateStr)) {
+          streak++;
+        } else {
+          break;
+        }
       }
+
       return streak;
     }
 
@@ -171,8 +180,8 @@
           }
           barHTML += '</div>';
           const belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
-            ${streak < 7 
-              ? `Snurra ${7 - streak} dagar till för att låsa upp bonusspel med Sparky!` 
+            ${streak < 7
+              ? `Snurra ${7 - streak} dagar till för att låsa upp bonusspel med Sparky!`
               : `🎉 Du har låst upp bonusutmaningen – startar nu!`}
           </div>`;
           document.getElementById('streakBar').innerHTML = barHTML + belowText;
@@ -204,12 +213,17 @@
 
       selectedSegmentText = segments[segmentIndex - 1].text;
 
-      if (selectedSegmentText === '0 kr') {
-        fetch(`${streakScriptUrl}?value_category=1&user_id=${userId}`);
-      } else {
-        let category = selectedSegmentText === '20 kr' ? 2 : 3;
-        fetch(`${streakScriptUrl}?value_category=${category}&user_id=${userId}`)
-          .then(res => res.json())
+      if (selectedSegmentText !== '0 kr') {
+        let category;
+        switch (selectedSegmentText) {
+          case '5 kr': category = 1; break;
+          case '10 kr': category = 2; break;
+          case '20 kr': category = 3; break;
+          case '100 kr': category = 4; break;
+        }
+
+        fetch(`https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec?value_category=${category}&user_id=${userId}`)
+          .then(r => r.json())
           .then(data => preloadedCode = data.code || 'KOD')
           .catch(() => preloadedCode = 'ERROR');
       }
@@ -226,8 +240,16 @@
       if (segment.text === '0 kr') {
         resultDiv.innerHTML = `😔 Tyvärr blev det ingen vinst den här gången - prova igen imorgon!`;
       } else {
-        resultDiv.innerHTML = `🎉 Du vann: ${segment.text}!<br/>Din kod: <strong id="promoCode">${preloadedCode}</strong><br/><button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button><div id="copyMessage"></div><br/>Aktivera koden i appen nu – gäller endast i 1 timme!`;
+        resultDiv.innerHTML = `
+          🎉 Du vann: ${segment.text}!<br/>
+          Din kod: <strong id="promoCode">${preloadedCode}</strong><br/>
+          <button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button>
+          <div id="copyMessage"></div><br/>
+          Aktivera koden i appen nu – gäller endast i 1 timme!
+        `;
       }
+
+      // 🔁 Uppdatera streak direkt efter snurr
       displayStreakBar(getUserId());
     }
 
