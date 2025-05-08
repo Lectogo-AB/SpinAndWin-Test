@@ -72,9 +72,7 @@
 </head>
 <body>
   <h1>🎉 Snurra & vinn laddkrediter varje dag!</h1>
-  <div id="streakBar">
-    <em>Laddar streak...</em>
-  </div>
+  <div id="streakBar"><em>Laddar streak...</em></div>
   <div class="pointer"></div>
   <div class="canvas-container">
     <canvas id="canvas" width="350" height="350"></canvas>
@@ -162,15 +160,11 @@
       }
 
       resultSegment = segments[segmentIndex - 1];
-
-      // Förladda kod
       preloadReward(resultSegment.text);
-
       theWheel.stopAnimation(false);
       theWheel.rotationAngle = 0;
       theWheel.animation.stopAngle = theWheel.getRandomForSegment(segmentIndex);
       theWheel.startAnimation();
-
       saveSpinDate();
     }
 
@@ -246,7 +240,7 @@
       let streak = 0;
       for (let i = 0; i < 7; i++) {
         const checkDate = new Date(baseDate);
-        checkDate.setDate(baseDate.getDate() - i);
+        checkDate.setDate(checkDate.getDate() - i);
         const dateStr = checkDate.toISOString().split('T')[0];
         if (dates.includes(dateStr)) {
           streak++;
@@ -254,7 +248,9 @@
           break;
         }
       }
-      return streak;
+
+      // ⛔ Nollställ om streak är 7 eller mer
+      return streak >= 7 ? 0 : streak;
     }
 
     function copyCode() {
