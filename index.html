@@ -1,4 +1,3 @@
-<!-- 🦊 Uppdaterad med streakvisning -->
 <!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -24,18 +23,8 @@
       margin-top: 20px;
       font-size: 1.5rem;
     }
-    #streakBox {
-      margin-top: 10px;
-      padding: 12px;
-      background-color: #e0f2fe;
-      color: #0369a1;
-      font-weight: 500;
-      border-radius: 10px;
-      width: 90%;
-      max-width: 360px;
-      margin-left: auto;
-      margin-right: auto;
-      font-size: 16px;
+    #streakBar {
+      margin-top: 12px;
     }
     .canvas-container {
       width: 90%;
@@ -102,7 +91,7 @@
 </head>
 <body>
   <h1>🎉 Snurra & vinn laddkrediter varje dag!</h1>
-  <div id="streakBox">🔥 Din streak laddas...</div>
+  <div id="streakBar"></div>
   <div class="pointer"></div>
   <div class="canvas-container">
     <canvas id="canvas" width="350" height="350"></canvas>
@@ -181,16 +170,31 @@
 
     function displayStreak() {
       const streak = parseInt(localStorage.getItem('currentStreak') || '0');
-      const box = document.getElementById('streakBox');
-      box.innerHTML = `🔥 Din streak: ${streak} dagar<br/>` + 
-        (streak < 7
-          ? `Snurra ${7 - streak} dagar till för att låsa upp bonusspel med Sparky!`
-          : `🎯 Du har låst upp bonusspel – startar nu!`);
+      const maxStreak = 7;
+      let barHTML = '<div style="display: flex; justify-content: center; gap: 6px;">';
+
+      for (let i = 1; i <= maxStreak; i++) {
+        if (i <= streak) {
+          barHTML += `<div style="width: 20px; height: 20px; background: #f97316; border-radius: 4px; box-shadow: 0 0 3px #fb923c;"></div>`;
+        } else if (i === maxStreak) {
+          barHTML += `<div style="width: 40px; height: 20px; background: #facc15; color: #000; font-size: 10px; font-weight: bold; border-radius: 4px; display: flex; align-items: center; justify-content: center;">🎯</div>`;
+        } else {
+          barHTML += `<div style="width: 20px; height: 20px; background: #e5e7eb; border-radius: 4px;"></div>`;
+        }
+      }
+
+      barHTML += '</div>';
+      const belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
+        ${streak < 7 
+          ? `Snurra ${7 - streak} dagar till för att låsa upp bonusspel med Sparky!` 
+          : `🎉 Du har låst upp bonusutmaningen – startar nu!`}
+      </div>`;
+
+      document.getElementById('streakBar').innerHTML = barHTML + belowText;
     }
 
     function checkStreakReward(streak, userId) {
       if (streak >= 7) {
-        // Här kan vi senare göra redirect till Sparky-spelet istället
         fetch(`https://script.google.com/macros/s/AKfycbxr5XUG3TRzFUk8oHV-KFw4m9ivxWPYOUFMbUn9MoV-2JYKykcL9OjiBbREfIZ2XkiBLg/exec?value_category=4&user_id=${userId}&bonus=streak`)
           .then(res => res.json())
           .then(data => {
