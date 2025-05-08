@@ -98,16 +98,15 @@
   <div class="result" id="result"></div>
 
   <script>
-    const streakURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
-    const codeURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
 
     const segments = [
-      {'fillStyle': '#42a5f5', 'text': '5 kr'},
-      {'fillStyle': '#4caf50', 'text': '100 kr'},
-      {'fillStyle': '#1e88e5', 'text': '10 kr'},
-      {'fillStyle': '#FF404A', 'text': '0 kr'},
-      {'fillStyle': '#42a5f5', 'text': '5 kr'},
-      {'fillStyle': '#008F4C', 'text': '20 kr'}
+      { 'fillStyle': '#42a5f5', 'text': '5 kr' },
+      { 'fillStyle': '#4caf50', 'text': '100 kr' },
+      { 'fillStyle': '#1e88e5', 'text': '10 kr' },
+      { 'fillStyle': '#FF404A', 'text': '0 kr' },
+      { 'fillStyle': '#42a5f5', 'text': '5 kr' },
+      { 'fillStyle': '#008F4C', 'text': '20 kr' }
     ];
     const probabilities = [0.22, 0.02, 0.28, 0.20, 0.23, 0.05];
 
@@ -145,30 +144,28 @@
       return id;
     }
 
-    function hasSpunToday() {
-      const lastSpin = localStorage.getItem('lastSpinDate');
-      const today = new Date().toISOString().split('T')[0];
-      return lastSpin === today;
-    }
-
-    function markSpinToday() {
-      const today = new Date().toISOString().split('T')[0];
-      localStorage.setItem('lastSpinDate', today);
-    }
-
-    function calculateStreak(dates) {
+    function calculateStreak(rawDates) {
       const today = new Date();
+      const dates = rawDates.map(d => {
+        const parts = d.split(' ')[0].split('/');
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      });
+
       let streak = 0;
-      for (let i = 1; i <= 7; i++) {
+      for (let i = 0; i < 7; i++) {
         const day = new Date(today.getTime() - i * 86400000).toISOString().split('T')[0];
-        if (dates.includes(day)) streak++;
-        else break;
+        if (dates.includes(day)) {
+          streak++;
+        } else {
+          break;
+        }
       }
+
       return streak;
     }
 
     function displayStreakBar(userId) {
-      fetch(`${streakURL}?get_dates=true&user_id=${userId}`)
+      fetch(`${scriptURL}?get_dates=true&user_id=${userId}`)
         .then(res => res.json())
         .then(data => {
           const streak = calculateStreak(data.dates || []);
@@ -199,18 +196,11 @@
     }
 
     function spin() {
-      if (hasSpunToday()) {
-        alert("⏰ Du har redan snurrat idag! Kom tillbaka imorgon.");
-        return;
-      }
-
-      markSpinToday();
-
       const userId = getUserId();
+
       let rand = Math.random();
       let cumulative = 0;
       let segmentIndex = 0;
-
       for (let i = 0; i < probabilities.length; i++) {
         cumulative += probabilities[i];
         if (rand < cumulative) {
@@ -218,7 +208,6 @@
           break;
         }
       }
-
       selectedSegmentText = segments[segmentIndex - 1].text;
 
       if (selectedSegmentText !== '0 kr') {
@@ -230,7 +219,7 @@
           case '100 kr': category = 4; break;
         }
 
-        fetch(`${codeURL}?value_category=${category}&user_id=${userId}`)
+        fetch(`${scriptURL}?value_category=${category}&user_id=${userId}`)
           .then(res => res.json())
           .then(data => {
             preloadedCode = data.code || "KOD EJ FUNNEN";
@@ -246,17 +235,49 @@
 
     function handleResult(segment) {
       const resultDiv = document.getElementById('result');
+      const userId = getUserId();
+
       if (segment.text === '0 kr') {
-        resultDiv.innerHTML = `😔 Tyvärr blev det ingen vinst den här gången - prova igen imorgon!`;
-      } else {
-        resultDiv.innerHTML = `
-          🎉 Du vann: ${segment.text}!<br/>
-          Din kod: <strong id="promoCode">${preloadedCode}</strong><br/>
-          <button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button>
-          <div id="copyMessage"></div><br/>
-          Aktivera koden i appen nu – gäller endast i 1 timme!
-        `;
+        fetch(`${scriptURL}?value_category=0&user_id=${userId}`)
+          .then(() => {
+            resultDiv.innerHTML = `😔 Tyvärr blev det ingen vinst den här gången - prova igen imorgon!`;
+            displayStreakBar(userId);
+          })
+          .catch(() => {
+            resultDiv.innerHTML = `⚠️ Fel vid loggning av snurr.`;
+          });
+        return;
       }
+
+      let category;
+      switch (segment.text) {
+        case '5 kr': category = 1; break;
+        case '10 kr': category = 2; break;
+        case '20 kr': category = 3; break;
+        case '100 kr': category = 4; break;
+      }
+
+      fetch(`${scriptURL}?value_category=${category}&user_id=${userId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error === "already_spun") {
+            resultDiv.innerHTML = `⏰ Du har redan snurrat idag. Prova igen imorgon!`;
+          } else if (data.code) {
+            resultDiv.innerHTML = `
+              🎉 Du vann: ${segment.text}!<br/>
+              Din kod: <strong id="promoCode">${data.code}</strong><br/>
+              <button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button>
+              <div id="copyMessage"></div><br/>
+              Aktivera koden i appen nu – gäller endast i 1 timme!
+            `;
+          } else {
+            resultDiv.innerHTML = `⚠️ Något gick fel. Försök igen senare.`;
+          }
+          displayStreakBar(userId);
+        })
+        .catch(() => {
+          resultDiv.innerHTML = `⚠️ Fel vid hämtning av kod.`;
+        });
     }
 
     function copyCode() {
