@@ -2,46 +2,79 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Spin & Win | LecToGo</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/zarocknz/javascript-winwheel@master/Winwheel.min.js"></script>
   <style>
     html, body {
+      text-align: center;
       font-family: 'Poppins', Arial, sans-serif;
-      background: #f4f7fa;
+      background-color: #f4f7fa;
       margin: 0;
       padding-top: 20px;
-      text-align: center;
+    }
+    h1 {
+      color: #111;
+      font-size: 1.6rem;
+      margin-bottom: 5px;
+    }
+    #streakBar {
+      margin-top: 10px;
+      min-height: 60px;
+      transition: opacity 0.3s ease;
     }
     .canvas-container {
-      width: 90%; max-width: 350px; margin: 10px auto;
+      width: 90%;
+      max-width: 350px;
+      margin: 10px auto;
     }
     .pointer {
+      width: 0;
+      height: 0;
       border-left: 12px solid transparent;
       border-right: 12px solid transparent;
       border-top: 20px solid #333;
       margin: 10px auto;
     }
-    .spin-btn, .copy-btn {
+    .spin-btn {
       background-color: #3b82f6;
-      color: #fff;
-      border: none;
+      color: white;
       padding: 12px 25px;
-      font-size: 16px;
+      border: none;
       border-radius: 50px;
+      font-size: 16px;
       margin-top: 15px;
       cursor: pointer;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
     }
-    .copy-btn { background-color: #4caf50; font-size: 14px; padding: 10px 20px; }
-    .result, #copyMessage { margin-top: 10px; font-size: 16px; }
-    #copyMessage { font-size: 14px; color: green; }
+    .result {
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    .copy-btn {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #copyMessage {
+      margin-top: 8px;
+      color: green;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
   <h1>🎉 Snurra & vinn laddkrediter varje dag!</h1>
-  <div id="streakBar"></div>
+  <div id="streakBar">
+    <em>Laddar streak...</em>
+  </div>
   <div class="pointer"></div>
   <div class="canvas-container">
     <canvas id="canvas" width="350" height="350"></canvas>
@@ -61,7 +94,7 @@
       { fillStyle: '#42a5f5', text: '5 kr' },
       { fillStyle: '#4caf50', text: '100 kr' }
     ];
-    const probabilities = [0.4, 0.15, 0.05, 0.445, 0.4, 0.005];
+    const probabilities = [0.40, 0.15, 0.05, 0.445, 0.40, 0.005];
 
     const theWheel = new Winwheel({
       canvasId: 'canvas',
@@ -79,21 +112,31 @@
       }
     });
 
-    let preloadedCode = '';
-    let selectedSegmentText = '';
+    let resultSegment = null;
+    let preloadedCode = null;
+    const userId = getUserId();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      displayStreakBar(userId);
+    });
 
     function getUserId() {
       const params = new URLSearchParams(window.location.search);
       let id = params.get('user_id');
       if (!id) {
-        id = localStorage.getItem('userId') || 'user-' + Date.now();
-        localStorage.setItem('userId', id);
+        id = localStorage.getItem('userId');
+        if (!id) {
+          id = 'user-' + Date.now();
+          localStorage.setItem('userId', id);
+        }
       }
       return id;
     }
 
     function canSpin() {
-      return localStorage.getItem('lastSpinDate') !== new Date().toISOString().split('T')[0];
+      const lastSpinDate = localStorage.getItem('lastSpinDate');
+      const today = new Date().toISOString().split('T')[0];
+      return lastSpinDate !== today;
     }
 
     function saveSpinDate() {
@@ -106,11 +149,10 @@
         document.getElementById('result').innerHTML = '⏰ Du har redan snurrat idag!';
         return;
       }
-      const userId = getUserId();
-      saveSpinDate();
 
       const rand = Math.random();
-      let cumulative = 0, segmentIndex = 0;
+      let cumulative = 0;
+      let segmentIndex = 0;
       for (let i = 0; i < probabilities.length; i++) {
         cumulative += probabilities[i];
         if (rand < cumulative) {
@@ -118,82 +160,99 @@
           break;
         }
       }
-      selectedSegmentText = segments[segmentIndex - 1].text;
 
-      // Hämta kod i bakgrunden
-      let category = 0;
-      switch (selectedSegmentText) {
-        case '5 kr': category = 1; break;
-        case '10 kr': category = 2; break;
-        case '20 kr': category = 3; break;
-        case '100 kr': category = 4; break;
-      }
+      resultSegment = segments[segmentIndex - 1];
 
-      fetch(`${backendScriptURL}?value_category=${category}&user_id=${userId}`)
-        .then(res => res.json())
-        .then(data => preloadedCode = data.code || '')
-        .catch(() => preloadedCode = '');
+      // Förladda kod
+      preloadReward(resultSegment.text);
 
-      // Snurra
       theWheel.stopAnimation(false);
       theWheel.rotationAngle = 0;
       theWheel.animation.stopAngle = theWheel.getRandomForSegment(segmentIndex);
       theWheel.startAnimation();
+
+      saveSpinDate();
+    }
+
+    function preloadReward(text) {
+      const category = getCategory(text);
+      if (category === null) return;
+      fetch(`${backendScriptURL}?value_category=${category}&user_id=${userId}`)
+        .then(r => r.json())
+        .then(data => preloadedCode = data.code || null);
     }
 
     function handleResult(segment) {
       const resultDiv = document.getElementById('result');
-      const userId = getUserId();
+      const text = segment.text;
 
-      if (segment.text === '0 kr') {
+      if (text === '0 kr') {
         fetch(`${backendScriptURL}?value_category=0&user_id=${userId}`);
-        resultDiv.innerHTML = '😔 Tyvärr blev det ingen vinst idag – prova igen imorgon!';
-        updateCachedStreak();
-        return;
+        resultDiv.innerHTML = `😔 Tyvärr blev det ingen vinst den här gången - prova igen imorgon!`;
+      } else {
+        resultDiv.innerHTML = `🎉 Du vann: ${text}!<br/>Din kod: <strong id="promoCode">${preloadedCode || 'Hämtas...'}</strong><br/><button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button><div id="copyMessage"></div><br/>Aktivera koden i appen nu – gäller endast i 1 timme!`;
       }
 
-      resultDiv.innerHTML = `🎉 Du vann: ${segment.text}!<br/>Din kod: <strong id="promoCode">${preloadedCode}</strong><br/><button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button><div id="copyMessage"></div>`;
-      updateCachedStreak();
+      displayStreakBar(userId);
     }
 
-    function updateCachedStreak() {
-      const today = new Date().toISOString().split('T')[0];
-      let cached = JSON.parse(localStorage.getItem('cachedStreak') || '{}');
-      const newStreak = (cached.date === today ? cached.streak : (cached.streak || 0) + 1);
-      localStorage.setItem('cachedStreak', JSON.stringify({ date: today, streak: newStreak }));
-      displayStreakBarFromCache(newStreak);
-    }
-
-    function displayStreakBarFromCache(streak) {
-      const bar = document.getElementById('streakBar');
-      let html = '<div style="display:flex;justify-content:center;gap:6px;">';
-      for (let i = 1; i <= 7; i++) {
-        html += `<div style="width:${i === 7 ? 40 : 20}px;height:20px;background:${i <= streak ? '#f97316' : (i === 7 ? '#facc15' : '#e5e7eb')};border-radius:4px;${i === 7 ? 'font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;' : ''}">${i === 7 ? '🎯' : ''}</div>`;
+    function getCategory(text) {
+      switch (text) {
+        case '5 kr': return 1;
+        case '10 kr': return 2;
+        case '20 kr': return 3;
+        case '100 kr': return 4;
+        case '0 kr': return 0;
+        default: return null;
       }
-      html += '</div><div style="margin-top:6px;font-size:14px;">' + (streak < 7 ? `Snurra ${7 - streak} dagar till för bonusspel!` : `🎉 Du har låst upp bonusutmaningen!`) + '</div>';
-      bar.innerHTML = html;
     }
 
-    function refreshStreakFromServer(userId) {
+    function displayStreakBar(userId) {
       fetch(`${streakScriptURL}?get_dates=true&user_id=${userId}`)
         .then(res => res.json())
         .then(data => {
           const streak = calculateStreak(data.dates || []);
-          localStorage.setItem('cachedStreak', JSON.stringify({ date: new Date().toISOString().split('T')[0], streak }));
-          displayStreakBarFromCache(streak);
+          const maxStreak = 7;
+          let barHTML = '<div style="display: flex; justify-content: center; gap: 6px;">';
+
+          for (let i = 1; i <= maxStreak; i++) {
+            if (i <= streak) {
+              barHTML += `<div style="width: 20px; height: 20px; background: #f97316; border-radius: 4px;"></div>`;
+            } else if (i === maxStreak) {
+              barHTML += `<div style="width: 40px; height: 20px; background: #facc15; font-size: 10px; font-weight: bold; border-radius: 4px; display: flex; align-items: center; justify-content: center;">🎯</div>`;
+            } else {
+              barHTML += `<div style="width: 20px; height: 20px; background: #e5e7eb; border-radius: 4px;"></div>`;
+            }
+          }
+          barHTML += '</div>';
+
+          const text = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
+            ${streak < 7 ? `Snurra ${7 - streak} dagar till för bonusspel!` : `🎉 Du har låst upp bonusutmaningen – startar nu!`}
+          </div>`;
+
+          document.getElementById('streakBar').innerHTML = barHTML + text;
+        })
+        .catch(() => {
+          document.getElementById('streakBar').innerText = '⚠️ Kunde inte hämta streak.';
         });
     }
 
     function calculateStreak(dates) {
       const today = new Date().toISOString().split('T')[0];
-      let base = new Date();
-      if (!dates.includes(today)) base.setDate(base.getDate() - 1);
+      let baseDate = new Date();
+      if (!dates.includes(today)) {
+        baseDate.setDate(baseDate.getDate() - 1);
+      }
       let streak = 0;
       for (let i = 0; i < 7; i++) {
-        const check = new Date(base);
-        check.setDate(base.getDate() - i);
-        if (dates.includes(check.toISOString().split('T')[0])) streak++;
-        else break;
+        const checkDate = new Date(baseDate);
+        checkDate.setDate(baseDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+        if (dates.includes(dateStr)) {
+          streak++;
+        } else {
+          break;
+        }
       }
       return streak;
     }
@@ -201,17 +260,10 @@
     function copyCode() {
       const code = document.getElementById('promoCode').innerText;
       navigator.clipboard.writeText(code).then(() => {
-        document.getElementById('copyMessage').innerText = '✔️ Koden kopierad!';
+        document.getElementById('copyMessage').innerText = '✔️ Koden är kopierad!';
         setTimeout(() => document.getElementById('copyMessage').innerText = '', 2000);
       });
     }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const userId = getUserId();
-      const cached = JSON.parse(localStorage.getItem('cachedStreak') || '{}');
-      displayStreakBarFromCache(cached.streak || 0);
-      refreshStreakFromServer(userId);
-    });
   </script>
 </body>
 </html>
