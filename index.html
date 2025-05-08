@@ -84,12 +84,12 @@
     const streakScriptUrl = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
 
     const segments = [
-      {'fillStyle': '#42a5f5', 'text': '5 kr'},
-      {'fillStyle': '#4caf50', 'text': '100 kr'},
-      {'fillStyle': '#1e88e5', 'text': '10 kr'},
-      {'fillStyle': '#FF404A', 'text': '0 kr'},
-      {'fillStyle': '#42a5f5', 'text': '5 kr'},
-      {'fillStyle': '#008F4C', 'text': '20 kr'}
+      { fillStyle: '#42a5f5', text: '5 kr' },
+      { fillStyle: '#4caf50', text: '100 kr' },
+      { fillStyle: '#1e88e5', text: '10 kr' },
+      { fillStyle: '#FF404A', text: '0 kr' },
+      { fillStyle: '#42a5f5', text: '5 kr' },
+      { fillStyle: '#008F4C', text: '20 kr' }
     ];
     const probabilities = [0.22, 0.02, 0.28, 0.20, 0.23, 0.05];
 
@@ -139,16 +139,25 @@
 
     function calculateStreak(dates) {
       const today = new Date().toISOString().split('T')[0];
+      let baseDate = new Date();
+
+      if (!dates.includes(today)) {
+        baseDate.setDate(baseDate.getDate() - 1);
+      }
+
       let streak = 0;
 
       for (let i = 0; i < 7; i++) {
-        const day = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
-        if (dates.includes(day)) {
+        const checkDate = new Date(baseDate);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+        if (dates.includes(dateStr)) {
           streak++;
         } else {
           break;
         }
       }
+
       return streak;
     }
 
@@ -171,8 +180,8 @@
           }
           barHTML += '</div>';
           const belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
-            ${streak < 7 
-              ? `Snurra ${7 - streak} dagar till för att låsa upp bonusspel med Sparky!` 
+            ${streak < 7
+              ? `Snurra ${7 - streak} dagar till för att låsa upp bonusspel med Sparky!`
               : `🎉 Du har låst upp bonusutmaningen – startar nu!`}
           </div>`;
           document.getElementById('streakBar').innerHTML = barHTML + belowText;
@@ -231,8 +240,17 @@
       if (segment.text === '0 kr') {
         resultDiv.innerHTML = `😔 Tyvärr blev det ingen vinst den här gången - prova igen imorgon!`;
       } else {
-        resultDiv.innerHTML = `🎉 Du vann: ${segment.text}!<br/>Din kod: <strong id="promoCode">${preloadedCode}</strong><br/><button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button><div id="copyMessage"></div><br/>Aktivera koden i appen nu – gäller endast i 1 timme!`;
+        resultDiv.innerHTML = `
+          🎉 Du vann: ${segment.text}!<br/>
+          Din kod: <strong id="promoCode">${preloadedCode}</strong><br/>
+          <button class="copy-btn" onclick="copyCode()">📋 Kopiera koden</button>
+          <div id="copyMessage"></div><br/>
+          Aktivera koden i appen nu – gäller endast i 1 timme!
+        `;
       }
+
+      // 🔁 Uppdatera streak direkt efter snurr
+      displayStreakBar(getUserId());
     }
 
     function copyCode() {
