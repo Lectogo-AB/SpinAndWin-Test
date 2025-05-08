@@ -16,19 +16,9 @@
       padding-top: 20px;
       overflow-x: hidden;
     }
-    h1 {
-      color: #333;
-      margin-top: 20px;
-      font-size: 1.5rem;
-    }
-    #streakBar {
-      margin-top: 12px;
-    }
-    .canvas-container {
-      width: 90%;
-      max-width: 350px;
-      margin: 10px auto;
-    }
+    h1 { color: #333; margin-top: 20px; font-size: 1.5rem; }
+    #streakBar { margin-top: 12px; }
+    .canvas-container { width: 90%; max-width: 350px; margin: 10px auto; }
     #canvas {
       width: 100%;
       height: auto;
@@ -47,20 +37,11 @@
       box-shadow: 0 3px 8px rgba(0,0,0,0.15);
       transition: transform 0.1s;
     }
-    .spin-btn:hover {
-      background-color: #2563eb;
-    }
-    .spin-btn:active {
-      transform: scale(0.95);
-    }
-    .result {
-      margin-top: 10px;
-      font-size: 16px;
-      color: #000;
-    }
+    .spin-btn:hover { background-color: #2563eb; }
+    .spin-btn:active { transform: scale(0.95); }
+    .result { margin-top: 10px; font-size: 16px; color: #000; }
     .pointer {
-      width: 0;
-      height: 0;
+      width: 0; height: 0;
       border-left: 12px solid transparent;
       border-right: 12px solid transparent;
       border-top: 20px solid #333;
@@ -77,9 +58,7 @@
       font-size: 14px;
       cursor: pointer;
     }
-    .copy-btn:active {
-      transform: scale(0.95);
-    }
+    .copy-btn:active { transform: scale(0.95); }
     #copyMessage {
       margin-top: 8px;
       color: green;
@@ -102,12 +81,12 @@
     const codeMacroUrl = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
 
     const segments = [
-      {'fillStyle': '#42a5f5', 'text': '5 kr'},
-      {'fillStyle': '#4caf50', 'text': '100 kr'},
-      {'fillStyle': '#1e88e5', 'text': '10 kr'},
-      {'fillStyle': '#FF404A', 'text': '0 kr'},
-      {'fillStyle': '#42a5f5', 'text': '5 kr'},
-      {'fillStyle': '#008F4C', 'text': '20 kr'}
+      { 'fillStyle': '#42a5f5', 'text': '5 kr' },
+      { 'fillStyle': '#4caf50', 'text': '100 kr' },
+      { 'fillStyle': '#1e88e5', 'text': '10 kr' },
+      { 'fillStyle': '#FF404A', 'text': '0 kr' },
+      { 'fillStyle': '#42a5f5', 'text': '5 kr' },
+      { 'fillStyle': '#008F4C', 'text': '20 kr' }
     ];
     const probabilities = [0.22, 0.02, 0.28, 0.20, 0.23, 0.05];
 
@@ -130,6 +109,7 @@
 
     let selectedSegmentText = '';
     let preloadedCode = '';
+    let alreadySpunToday = false;
 
     function getUserId() {
       const params = new URLSearchParams(window.location.search);
@@ -161,6 +141,9 @@
         .then(res => res.json())
         .then(data => {
           const streak = calculateStreak(data.dates || []);
+          const today = new Date().toISOString().split('T')[0];
+          alreadySpunToday = (data.dates || []).includes(today);
+
           const maxStreak = 7;
           let barHTML = '<div style="display: flex; justify-content: center; gap: 6px;">';
 
@@ -188,11 +171,13 @@
     }
 
     function spin() {
-      const userId = getUserId();
+      if (alreadySpunToday) {
+        document.getElementById('result').innerHTML = `⏰ Du har redan snurrat idag – kom tillbaka imorgon!`;
+        return;
+      }
 
-      let rand = Math.random();
-      let cumulative = 0;
-      let segmentIndex = 0;
+      const userId = getUserId();
+      let rand = Math.random(), cumulative = 0, segmentIndex = 0;
       for (let i = 0; i < probabilities.length; i++) {
         cumulative += probabilities[i];
         if (rand < cumulative) {
