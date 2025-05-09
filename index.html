@@ -25,6 +25,16 @@
       min-height: 80px;
       transition: opacity 0.3s ease;
     }
+    .bonus-btn {
+      margin-top: 8px;
+      padding: 10px 20px;
+      background-color: #f59e0b;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+    }
     .canvas-container {
       width: 90%;
       max-width: 350px;
@@ -48,17 +58,6 @@
       margin-top: 15px;
       cursor: pointer;
       box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-    }
-    .bonus-btn {
-      background-color: #facc15;
-      color: #111;
-      font-weight: bold;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 30px;
-      font-size: 15px;
-      cursor: pointer;
-      margin-top: 12px;
     }
     .result {
       margin-top: 10px;
@@ -94,7 +93,7 @@
   <script>
     const backendScriptURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
     const streakScriptURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
-    const bonusPageURL = "https://lectogo.com/bonusspel"; // <-- Ändra till din riktiga URL
+    const bonusPageURL = "https://www.lectogo.com/bonusspel"; // byt till rätt URL när bonusspel finns
 
     const segments = [
       { fillStyle: '#42a5f5', text: '5 kr' },
@@ -219,32 +218,47 @@
         .then(data => {
           let streak = calculateStreak(data.dates || []);
           const maxStreak = 7;
-          let barHTML = '<div style="display: flex; justify-content: center; gap: 6px;">';
+
+          const bar = document.createElement("div");
+          bar.style.display = "flex";
+          bar.style.justifyContent = "center";
+          bar.style.gap = "6px";
 
           for (let i = 1; i <= maxStreak; i++) {
+            const el = document.createElement("div");
+            el.style.width = i === maxStreak ? "40px" : "20px";
+            el.style.height = "20px";
+            el.style.borderRadius = "4px";
             if (i <= streak) {
-              barHTML += `<div style="width: 20px; height: 20px; background: #f97316; border-radius: 4px;"></div>`;
+              el.style.background = "#f97316";
             } else if (i === maxStreak) {
-              barHTML += `<div style="width: 40px; height: 20px; background: #facc15; font-size: 10px; font-weight: bold; border-radius: 4px; display: flex; align-items: center; justify-content: center;">🎯</div>`;
+              el.style.background = "#facc15";
+              el.style.fontSize = "10px";
+              el.style.fontWeight = "bold";
+              el.style.display = "flex";
+              el.style.alignItems = "center";
+              el.style.justifyContent = "center";
+              el.textContent = "🎯";
             } else {
-              barHTML += `<div style="width: 20px; height: 20px; background: #e5e7eb; border-radius: 4px;"></div>`;
+              el.style.background = "#e5e7eb";
             }
-          }
-          barHTML += '</div>';
-
-          let belowText = '';
-          let bonusButton = '';
-
-          if (streak === 7) {
-            belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">🎉 Du har låst upp bonusutmaningen!</div>`;
-            bonusButton = `<button class="bonus-btn" onclick="location.href='${bonusPageURL}'">🎯 Starta bonusspel</button>`;
-          } else {
-            belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">Snurra ${7 - streak} dagar till för bonusspel!</div>`;
+            bar.appendChild(el);
           }
 
-          if (streak > 7) streak = 0; // reset if streak > 7
+          const belowText = document.createElement("div");
+          belowText.style.marginTop = "6px";
+          belowText.style.fontSize = "14px";
+          belowText.style.color = "#444";
 
-          document.getElementById('streakBar').innerHTML = barHTML + belowText + bonusButton;
+          if (streak < 7) {
+            belowText.textContent = `Snurra ${7 - streak} dagar till för bonusspel!`;
+          } else if (streak === 7) {
+            belowText.innerHTML = `🎉 Du har låst upp bonusutmaningen!<br/><a href="${bonusPageURL}"><button class="bonus-btn">🚀 Starta bonusspel</button></a>`;
+          }
+
+          document.getElementById('streakBar').innerHTML = "";
+          document.getElementById('streakBar').appendChild(bar);
+          document.getElementById('streakBar').appendChild(belowText);
         })
         .catch(() => {
           document.getElementById('streakBar').innerText = '⚠️ Kunde inte hämta streak.';
@@ -258,9 +272,9 @@
         baseDate.setDate(baseDate.getDate() - 1);
       }
       let streak = 0;
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 30; i++) {
         const checkDate = new Date(baseDate);
-        checkDate.setDate(baseDate.getDate() - i);
+        checkDate.setDate(checkDate.getDate() - i);
         const dateStr = checkDate.toISOString().split('T')[0];
         if (dates.includes(dateStr)) {
           streak++;
@@ -268,6 +282,8 @@
           break;
         }
       }
+
+      if (streak > 7) return 0; // Reset streak after bonus
       return streak;
     }
 
