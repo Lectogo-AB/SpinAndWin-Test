@@ -68,6 +68,16 @@
       color: green;
       font-size: 14px;
     }
+    .bonus-btn {
+      background-color: #facc15;
+      color: #000;
+      padding: 10px 20px;
+      margin-top: 12px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -83,7 +93,7 @@
   <script>
     const backendScriptURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
     const streakScriptURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
-    const bonusPageURL = "https://www.lectogo.com/";
+    const bonusPageURL = "https://www.lectogo.com/"; // Ändra till din riktiga bonus-URL
 
     const segments = [
       { fillStyle: '#42a5f5', text: '5 kr' },
@@ -209,12 +219,6 @@
           let streak = calculateStreak(data.dates || []);
           const maxStreak = 7;
 
-          if (streak === 7) {
-            setTimeout(() => {
-              window.location.href = bonusPageURL;
-            }, 2000);
-          }
-
           let barHTML = '<div style="display: flex; justify-content: center; gap: 6px;">';
           for (let i = 1; i <= maxStreak; i++) {
             if (i <= streak) {
@@ -227,9 +231,13 @@
           }
           barHTML += '</div>';
 
-          const belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
-            ${streak < 7 ? `Snurra ${7 - streak} dagar till för bonusspel!` : `🎉 Du har låst upp bonusutmaningen – startar nu!`}
+          let belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
+            ${streak < 7 ? `Snurra ${7 - streak} dagar till för bonusspel!` : `🎉 Du har låst upp bonusutmaningen!`}
           </div>`;
+
+          if (streak === 7) {
+            belowText += `<button class="bonus-btn" onclick="window.location.href='${bonusPageURL}'">🚀 Starta bonusutmaningen</button>`;
+          }
 
           document.getElementById('streakBar').innerHTML = barHTML + belowText;
         })
@@ -251,23 +259,22 @@
 
       for (let i = 1; i < dates.length; i++) {
         const diff = (dates[i] - lastValidDate) / (1000 * 60 * 60 * 24);
-
         if (diff === 1) {
           streak++;
           lastValidDate = dates[i];
-
-          if (streak === 7) {
-            streak = 0; // starta ny cykel
-          }
         } else if (diff > 1) {
           streak = 1;
           lastValidDate = dates[i];
         }
+
+        if (streak > 7) {
+          streak = 1;
+        }
       }
 
       const lastDateStr = lastValidDate.toISOString().split('T')[0];
-      if (lastDateStr !== todayStr) {
-        streak = Math.max(streak - 1, 0);
+      if (lastDateStr !== todayStr && streak === 7) {
+        return 0; // Efter bonus → starta om
       }
 
       return streak;
