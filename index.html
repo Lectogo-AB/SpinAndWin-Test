@@ -83,7 +83,7 @@
   <script>
     const backendScriptURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
     const streakScriptURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
-    const bonusPageURL = "https://www.lectogo.com/"; // <-- ändra till rätt URL när bonusspel är klart
+    const bonusPageURL = "https://www.lectogo.com/";
 
     const segments = [
       { fillStyle: '#42a5f5', text: '5 kr' },
@@ -209,14 +209,11 @@
           let streak = calculateStreak(data.dates || []);
           const maxStreak = 7;
 
-          // 👉 Om streak = 7 exakt, redirecta till bonusspel
           if (streak === 7) {
             setTimeout(() => {
               window.location.href = bonusPageURL;
             }, 2000);
           }
-
-          if (streak > 7) streak = 0;
 
           let barHTML = '<div style="display: flex; justify-content: center; gap: 6px;">';
           for (let i = 1; i <= maxStreak; i++) {
@@ -241,23 +238,33 @@
         });
     }
 
-    function calculateStreak(dates) {
-      const today = new Date().toISOString().split('T')[0];
-      let baseDate = new Date();
-      if (!dates.includes(today)) {
-        baseDate.setDate(baseDate.getDate() - 1);
-      }
+    function calculateStreak(dateStrings) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const dates = dateStrings.map(str => new Date(str)).sort((a, b) => a - b);
+
       let streak = 0;
-      for (let i = 0; i < 7; i++) {
-        const checkDate = new Date(baseDate);
-        checkDate.setDate(checkDate.getDate() - i);
-        const dateStr = checkDate.toISOString().split('T')[0];
-        if (dates.includes(dateStr)) {
-          streak++;
-        } else {
-          break;
+      let bonusCycles = 0;
+      let expectedDate = new Date(dates[0]);
+
+      for (let i = 0; i < dates.length; i++) {
+        if (i > 0) {
+          expectedDate.setDate(expectedDate.getDate() + 1);
+          const expectedStr = expectedDate.toISOString().split('T')[0];
+          const currentStr = dates[i].toISOString().split('T')[0];
+
+          if (currentStr !== expectedStr) {
+            streak = 0;
+            expectedDate = new Date(dates[i]);
+          }
+        }
+        streak++;
+
+        if (streak === 7) {
+          bonusCycles++;
+          streak = 0;
         }
       }
+
       return streak;
     }
 
