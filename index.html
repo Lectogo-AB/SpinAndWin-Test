@@ -240,24 +240,37 @@
 
     function calculateStreak(dateStrings) {
       const todayStr = new Date().toISOString().split('T')[0];
-      const dates = dateStrings.map(str => new Date(str)).sort((a, b) => a - b);
+      const dates = Array.from(new Set(dateStrings))
+        .map(str => new Date(str))
+        .sort((a, b) => a - b);
 
       if (dates.length === 0) return 0;
 
       let streak = 1;
-      for (let i = dates.length - 1; i > 0; i--) {
-        const diff = (dates[i] - dates[i - 1]) / (1000 * 60 * 60 * 24);
+      let lastValidDate = dates[0];
+
+      for (let i = 1; i < dates.length; i++) {
+        const diff = (dates[i] - lastValidDate) / (1000 * 60 * 60 * 24);
+
         if (diff === 1) {
           streak++;
+          lastValidDate = dates[i];
+
+          if (streak === 7) {
+            streak = 0; // starta ny cykel
+          }
         } else if (diff > 1) {
-          break;
+          streak = 1;
+          lastValidDate = dates[i];
         }
       }
 
-      const latestDateStr = dates[dates.length - 1].toISOString().split('T')[0];
-      if (latestDateStr !== todayStr) streak--;
+      const lastDateStr = lastValidDate.toISOString().split('T')[0];
+      if (lastDateStr !== todayStr) {
+        streak = Math.max(streak - 1, 0);
+      }
 
-      return Math.min(streak, 7);
+      return streak;
     }
 
     function copyCode() {
