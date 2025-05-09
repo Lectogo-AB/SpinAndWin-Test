@@ -242,30 +242,22 @@
       const todayStr = new Date().toISOString().split('T')[0];
       const dates = dateStrings.map(str => new Date(str)).sort((a, b) => a - b);
 
-      let streak = 0;
-      let bonusCycles = 0;
-      let expectedDate = new Date(dates[0]);
+      if (dates.length === 0) return 0;
 
-      for (let i = 0; i < dates.length; i++) {
-        if (i > 0) {
-          expectedDate.setDate(expectedDate.getDate() + 1);
-          const expectedStr = expectedDate.toISOString().split('T')[0];
-          const currentStr = dates[i].toISOString().split('T')[0];
-
-          if (currentStr !== expectedStr) {
-            streak = 0;
-            expectedDate = new Date(dates[i]);
-          }
-        }
-        streak++;
-
-        if (streak === 7) {
-          bonusCycles++;
-          streak = 0;
+      let streak = 1;
+      for (let i = dates.length - 1; i > 0; i--) {
+        const diff = (dates[i] - dates[i - 1]) / (1000 * 60 * 60 * 24);
+        if (diff === 1) {
+          streak++;
+        } else if (diff > 1) {
+          break;
         }
       }
 
-      return streak;
+      const latestDateStr = dates[dates.length - 1].toISOString().split('T')[0];
+      if (latestDateStr !== todayStr) streak--;
+
+      return Math.min(streak, 7);
     }
 
     function copyCode() {
