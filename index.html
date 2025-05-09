@@ -81,7 +81,7 @@
   </style>
 </head>
 <body>
-  <h1>🎉 Snurra & vinn laddkrediter varje dag!</h1>
+  <h1>🎉 Snurra varje dag – en hemlig bonus väntar efter 7 dagar!</h1>
   <div id="streakBar"><em>Laddar streak...</em></div>
   <div class="pointer"></div>
   <div class="canvas-container">
@@ -93,7 +93,7 @@
   <script>
     const backendScriptURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
     const streakScriptURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
-    const bonusPageURL = "https://www.lectogo.com/"; // Ändra till din riktiga bonus-URL
+    const bonusPageURL = "https://www.lectogo.com/";
 
     const segments = [
       { fillStyle: '#42a5f5', text: '5 kr' },
@@ -231,9 +231,14 @@
           }
           barHTML += '</div>';
 
-          let belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
-            ${streak < 7 ? `Snurra ${7 - streak} dagar till för bonusspel!` : `🎉 Du har låst upp bonusutmaningen!`}
-          </div>`;
+          let belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">`;
+          if (streak < 7) {
+            belowText += `Kom tillbaka och snurra imorgon – bara ${7 - streak} dag(ar) kvar för att låsa upp bonusen!`;
+          } else {
+            belowText += `Bra jobbat! Du har låst upp bonusen – klicka på knappen för att börja!<br/>
+            <span style="font-size: 13px; color: #666;">🌀 Du får en ny bonus varje gång du når 7 dagar i rad!</span>`;
+          }
+          belowText += `</div>`;
 
           if (streak === 7) {
             belowText += `<button class="bonus-btn" onclick="window.location.href='${bonusPageURL}'">🚀 Starta bonusutmaningen</button>`;
@@ -274,7 +279,7 @@
 
       const lastDateStr = lastValidDate.toISOString().split('T')[0];
       if (lastDateStr !== todayStr && streak === 7) {
-        return 0; // Efter bonus → starta om
+        return 0;
       }
 
       return streak;
