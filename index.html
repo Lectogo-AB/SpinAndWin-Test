@@ -22,7 +22,7 @@
     }
     #streakBar {
       margin-top: 10px;
-      min-height: 60px;
+      min-height: 80px;
       transition: opacity 0.3s ease;
     }
     .canvas-container {
@@ -48,6 +48,17 @@
       margin-top: 15px;
       cursor: pointer;
       box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    }
+    .bonus-btn {
+      background-color: #facc15;
+      color: #111;
+      font-weight: bold;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 30px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 12px;
     }
     .result {
       margin-top: 10px;
@@ -83,7 +94,7 @@
   <script>
     const backendScriptURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
     const streakScriptURL = "https://script.google.com/macros/s/AKfycbxC035Wq-cOtNZXClfmdKPLxSn_NdOblFc9EIMCMm_vdV9MuMUbdiqjWtD9gEMZbwe6/exec";
-    const bonusPageURL = "https://www.lectogo.com/"; // <-- ändra till rätt URL när bonusspel är klart
+    const bonusPageURL = "https://lectogo.com/bonusspel"; // <-- Ändra till din riktiga URL
 
     const segments = [
       { fillStyle: '#42a5f5', text: '5 kr' },
@@ -208,17 +219,8 @@
         .then(data => {
           let streak = calculateStreak(data.dates || []);
           const maxStreak = 7;
-
-          // 👉 Om streak = 7 exakt, redirecta till bonusspel
-          if (streak === 7) {
-            setTimeout(() => {
-              window.location.href = bonusPageURL;
-            }, 2000);
-          }
-
-          if (streak > 7) streak = 0;
-
           let barHTML = '<div style="display: flex; justify-content: center; gap: 6px;">';
+
           for (let i = 1; i <= maxStreak; i++) {
             if (i <= streak) {
               barHTML += `<div style="width: 20px; height: 20px; background: #f97316; border-radius: 4px;"></div>`;
@@ -230,11 +232,19 @@
           }
           barHTML += '</div>';
 
-          const belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">
-            ${streak < 7 ? `Snurra ${7 - streak} dagar till för bonusspel!` : `🎉 Du har låst upp bonusutmaningen – startar nu!`}
-          </div>`;
+          let belowText = '';
+          let bonusButton = '';
 
-          document.getElementById('streakBar').innerHTML = barHTML + belowText;
+          if (streak === 7) {
+            belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">🎉 Du har låst upp bonusutmaningen!</div>`;
+            bonusButton = `<button class="bonus-btn" onclick="location.href='${bonusPageURL}'">🎯 Starta bonusspel</button>`;
+          } else {
+            belowText = `<div style="margin-top: 6px; font-size: 14px; color: #444;">Snurra ${7 - streak} dagar till för bonusspel!</div>`;
+          }
+
+          if (streak > 7) streak = 0; // reset if streak > 7
+
+          document.getElementById('streakBar').innerHTML = barHTML + belowText + bonusButton;
         })
         .catch(() => {
           document.getElementById('streakBar').innerText = '⚠️ Kunde inte hämta streak.';
@@ -250,7 +260,7 @@
       let streak = 0;
       for (let i = 0; i < 7; i++) {
         const checkDate = new Date(baseDate);
-        checkDate.setDate(checkDate.getDate() - i);
+        checkDate.setDate(baseDate.getDate() - i);
         const dateStr = checkDate.toISOString().split('T')[0];
         if (dates.includes(dateStr)) {
           streak++;
