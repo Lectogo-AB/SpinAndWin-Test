@@ -78,6 +78,20 @@
       border-radius: 8px;
       cursor: pointer;
     }
+    .back-to-app-btn {
+      margin-top: 25px;
+      padding: 12px 24px;
+      background-color: #007aff;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .back-to-app-btn:hover {
+      background-color: #0062cc;
+    }
   </style>
 </head>
 <body>
@@ -89,6 +103,8 @@
   </div>
   <button class="spin-btn" onclick="spin()">🎯 Snurra hjulet</button>
   <div class="result" id="result"></div>
+
+  <button class="back-to-app-btn" onclick="window.history.back()">⬅️ Tillbaka till appen</button>
 
   <script>
     const backendScriptURL = "https://script.google.com/macros/s/AKfycbwfOZfwZ2chXrdIjxg1g05StEeiHaCTQDSL3mbOfrmOVdvWKzmAINNnJ80P4yjTF25d/exec";
@@ -236,7 +252,7 @@
             belowText += `Kom tillbaka och snurra imorgon – bara ${7 - streak} dag(ar) kvar för att låsa upp bonusen!`;
           } else {
             belowText += `Bra jobbat! Du har låst upp bonusen – klicka på knappen för att börja!<br/>
-            <span style="font-size: 13px; color: #666;">🌀 Du får en ny bonus varje gång du når 7 dagar i rad!</span>`;
+              <span style="font-size: 13px; color: #666;">🌀 Du får en ny bonus varje gång du når 7 dagar i rad!</span>`;
           }
           belowText += `</div>`;
 
