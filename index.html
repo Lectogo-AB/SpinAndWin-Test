@@ -2,224 +2,132 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Räven hoppar!</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Ditt resultat</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      min-height: 100vh;
+      background: linear-gradient(to bottom, #f3f4f6, #e0e0e0);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .result-box {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      max-width: 400px;
+      width: 100%;
+    }
+
+    h1 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    p {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+
+    .code-box {
+      font-size: 20px;
+      font-weight: bold;
+      background: #f0f0f0;
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background: #00c853;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #00b04c;
+    }
+
+    .copy-feedback {
+      color: green;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+  </style>
 </head>
 <body>
-  <div id="introPopup">
-    <h2>Hjälp Leccy!</h2>
-    <p>Samla poäng genom att hoppa mellan plattformar.</p>
-    <p>Du har tre liv = ❤️❤️❤️</p>
-    <p>Varje gång du faller eller nuddar ett ☠️ så förlorar du ett liv och börjar om från början.</p>
-    <p><strong>Instruktioner: Du styr Leccy genom att luta mobilen</strong></p>
-    <div style="margin: 16px 0; background: #f8f8f8; padding: 12px; border-radius: 8px;">
-      <strong>🎁 Vinsttabell:</strong><br>
-      25 poäng = 30 kr att ladda för<br>
-      50 poäng = 100 kr att ladda för
+  <div class="result-box">
+    <h1>Ditt resultat</h1>
+    <p id="scoreText">Poäng: ...</p>
+
+    <div id="winSection" style="display: none;">
+      <p>🎉 Du har vunnit laddkrediter!</p>
+      <div class="code-box" id="codeBox">Kod: ...</div>
+      <button onclick="copyCode()">Kopiera kod</button>
     </div>
-    <button id="startBtn">Starta spelet</button>
+
+    <div id="loseSection" style="display: none;">
+      <p>Försök igen nästa vecka!<br>Snurra lyckohjulet varje dag för en ny chans.</p>
+    </div>
+
+    <button onclick="goBack()">Tillbaka till appen</button>
   </div>
 
-  <canvas id="gameCanvas" width="375" height="667"></canvas>
-
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
 
-    const foxImg = new Image();
-    foxImg.src = "https://i.ibb.co/ZpTgFfVf/Adorable-Chibi-Fox-Illustration.png";
+    const score = getQueryParam("score");
+    const code = getQueryParam("code");
 
-    let fox = { x: 150, y: 600, width: 40, height: 40, vy: 0, gravity: 0.12, jumpStrength: -5.4 };
-    let platforms = [], hazards = [], keys = {}, tilt = 0;
-    let score = 0, highestScore = 0, lives = 3, scrollOffset = 0;
-    let visitedPlatforms = new Set();
-    let gameEnded = false;
-    let rewardFetched = false;
+    document.getElementById("scoreText").textContent = `Poäng: ${score}`;
 
-    const maxScore = 100;
+    if (code) {
+      document.getElementById("winSection").style.display = "block";
+      document.getElementById("codeBox").textContent = `Kod: ${decodeURIComponent(code)}`;
+    } else {
+      document.getElementById("loseSection").style.display = "block";
+    }
 
-    if (window.DeviceOrientationEvent) {
-      window.addEventListener("deviceorientation", function (event) {
-        tilt = event.gamma || 0;
+    function goBack() {
+      window.location.href = "leccyapp://home";
+    }
+
+    function copyCode() {
+      const code = document.getElementById("codeBox").textContent.replace("Kod: ", "").trim();
+      navigator.clipboard.writeText(code).then(() => {
+        let existing = document.getElementById("copiedMessage");
+        if (existing) existing.remove();
+
+        const msg = document.createElement('div');
+        msg.textContent = "✔️ Koden är kopierad!";
+        msg.className = "copy-feedback";
+        msg.id = "copiedMessage";
+        document.getElementById("winSection").appendChild(msg);
+
+        setTimeout(() => {
+          const toRemove = document.getElementById("copiedMessage");
+          if (toRemove) toRemove.remove();
+        }, 2500);
+      }).catch(() => {
+        alert("Kunde inte kopiera koden.");
       });
     }
-
-    function hasPlayedBonusToday() {
-      const stored = localStorage.getItem("bonusPlayedDate");
-      const today = new Date().toISOString().split('T')[0];
-      return stored === today;
-    }
-
-    function createPlatforms() {
-      platforms = [];
-      hazards = [];
-      visitedPlatforms.clear();
-      scrollOffset = 0;
-      let lastY = 650;
-      for (let i = 0; i < 100; i++) {
-        let y = lastY - 100;
-        let x = Math.random() * (canvas.width - 60);
-        platforms.push({ x, y, width: 60 });
-        if (i > 20 && Math.random() < 0.3) {
-          hazards.push({ x: x + 20, y: y - 20 });
-        }
-        lastY = y;
-      }
-      fox.x = platforms[0].x + 20;
-      fox.y = platforms[0].y - fox.height;
-      fox.vy = 0;
-    }
-
-    function drawFox() {
-      ctx.drawImage(foxImg, fox.x, fox.y, fox.width, fox.height);
-    }
-
-    function drawPlatforms() {
-      ctx.fillStyle = "#0077FF";
-      platforms.forEach(p => ctx.fillRect(p.x, p.y + scrollOffset, p.width, 10));
-    }
-
-    function drawHazards() {
-      ctx.font = "22px sans-serif";
-      hazards.forEach(h => {
-        ctx.fillText("☠️", h.x, h.y + scrollOffset);
-      });
-    }
-
-    function drawUI() {
-      ctx.font = "20px sans-serif";
-      for (let i = 0; i < lives; i++) ctx.fillText("❤️", 12 + i * 22, 50);
-      ctx.fillStyle = "#000";
-      ctx.fillText("Poäng: " + score, 10, 80);
-    }
-
-    function update() {
-      if (gameEnded) return;
-
-      fox.vy += fox.gravity;
-      fox.y += fox.vy;
-
-      if (keys["ArrowLeft"]) fox.x -= 2;
-      if (keys["ArrowRight"]) fox.x += 2;
-      if (Math.abs(tilt) > 2) fox.x += tilt * 0.15;
-
-      fox.x = Math.max(0, Math.min(canvas.width - fox.width, fox.x));
-
-      platforms.forEach((p, i) => {
-        const pY = p.y + scrollOffset;
-        if (
-          fox.vy > 0 &&
-          fox.x + fox.width > p.x &&
-          fox.x < p.x + p.width &&
-          fox.y + fox.height >= pY &&
-          fox.y + fox.height <= pY + 10
-        ) {
-          fox.vy = fox.jumpStrength;
-          if (!visitedPlatforms.has(i)) {
-            score++;
-            highestScore = Math.max(highestScore, score);
-            visitedPlatforms.add(i);
-            if (highestScore >= 50 && !gameEnded) {
-              endGame();
-              return;
-            }
-          }
-        }
-      });
-
-      hazards.forEach((h) => {
-        let hY = h.y + scrollOffset;
-        if (
-          fox.x + fox.width > h.x + 5 &&
-          fox.x < h.x + 15 &&
-          fox.y + fox.height > hY + 5 &&
-          fox.y < hY + 15
-        ) {
-          lives--;
-          if (lives > 0) {
-            createPlatforms();
-            score = 0;
-          } else {
-            endGame();
-          }
-        }
-      });
-
-      if (fox.y < canvas.height / 2) {
-        let delta = canvas.height / 2 - fox.y;
-        scrollOffset += delta;
-        fox.y = canvas.height / 2;
-        platforms.forEach(p => p.y += delta);
-        hazards.forEach(h => h.y += delta);
-      }
-
-      if (fox.y > canvas.height) {
-        lives--;
-        if (lives > 0) {
-          createPlatforms();
-          score = 0;
-        } else {
-          endGame();
-        }
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawPlatforms();
-      drawHazards();
-      drawFox();
-      drawUI();
-    }
-
-    function gameLoop() {
-      if (!gameEnded) {
-        update();
-        draw();
-        requestAnimationFrame(gameLoop);
-      }
-    }
-
-    function endGame() {
-      if (rewardFetched) return;
-      rewardFetched = true;
-      gameEnded = true;
-
-      const category = highestScore >= 50 ? 2 : highestScore >= 25 ? 1 : 0;
-      if (category === 0) {
-        window.location.href = `resultat.html?score=${highestScore}`;
-      } else {
-        fetch("https://script.google.com/macros/s/AKfycbwMo8LRdofYLb9ne7OpJbHLJjM6GT-csazPhyoYnBs833cHtJQPHPFrXZTN4Epi-KTV/exec?category=" + category)
-          .then(res => res.json())
-          .then(data => {
-            const kod = encodeURIComponent(data.code || "Ingen kod tillgänglig");
-            window.location.href = `resultat.html?score=${highestScore}&code=${kod}`;
-          })
-          .catch(() => {
-            window.location.href = `resultat.html?score=${highestScore}&code=Fel+vid+hämtning`;
-          });
-      }
-    }
-
-    document.getElementById("startBtn").addEventListener("click", () => {
-      if (hasPlayedBonusToday()) {
-        document.getElementById("introPopup").innerHTML = `
-          <h2>🚫 Bonus redan spelad!</h2>
-          <p>Du har redan spelat bonusen idag.</p>
-          <p>Kom tillbaka om 7 dagar för en ny chans!</p>
-          <button onclick="window.location.href='index.html'">🔁 Tillbaka till hjulet</button>
-        `;
-      } else {
-        localStorage.setItem("bonusPlayedDate", new Date().toISOString().split('T')[0]);
-        document.getElementById("introPopup").style.display = "none";
-        createPlatforms();
-        gameLoop();
-      }
-    });
-
-    document.addEventListener("keydown", e => keys[e.key] = true);
-    document.addEventListener("keyup", e => keys[e.key] = false);
   </script>
 </body>
 </html>
